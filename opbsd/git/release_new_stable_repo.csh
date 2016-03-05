@@ -19,19 +19,19 @@ echo
 
 git fetch origin
 
-git remote show hardenedbsd
+git remote show hardened-local
 set _ret = $?
 if ( ${_ret} != 0 ) then
-		echo "WARNING: 'hardenedbsd' remote have not found in your repo, if you want to add them, continue"
+		echo "WARNING: 'hardened-local' remote have not found in your repo, if you want to add them, continue"
 		echo "--"
 		echo 'enter "yes" to continue'
 		set _ok = $<
 		if ( $_ok != "yes" ) then
 			exit 1
 		endif
-	git remote add hardenedbsd git@github.com:HardenedBSD/hardenedBSD.git
+	git remote add hardened-local git@github.com:HardenedBSD/hardenedBSD.git
 endif
-git fetch hardenedbsd
+git fetch hardened-local
 
 echo
 
@@ -41,13 +41,13 @@ set __update_mode = ${argv[2]}
 switch (${__branch})
 case "10-stable":
 		set _lbranch = "opbsd/10-stable/master"
-		set _rbranch = "hardenedbsd/hardened/10-stable/master"
+		set _rbranch = "hardened-local/hardened/10-stable/master"
 		set _stag_template = "opbsd-10-stable-"
 		set _vtag_template = "opBSD-10-STABLE-v"
 	breaksw
 case "current":
 		set _lbranch = "opbsd/current/master"
-		set _rbranch = "hardenedbsd/hardened/current/master"
+		set _rbranch = "hardened-local/hardened/current/master"
 		set _stag_template = "opBSD-master-"
 		set _vtag_template = "opBSD-11-CURRENT-v"
 	breaksw
