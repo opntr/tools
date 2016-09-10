@@ -4,10 +4,7 @@
 # TODO
 # ----
 # proper logging
-# force mode
 # error recovery
-# signing
-# do not hardcode amd64/amd64 in WWW_* path, make them configurable
 #
 
 PATH=${PATH}:/usr/local/bin
@@ -16,6 +13,7 @@ export PATH
 DATE=`date "+%Y%m%d%H%M%S"`
 
 BRANCH_10="hardened/10-stable/master"
+BRANCH_11="hardened/11-stable/master"
 BRANCH_current="hardened/current/master"
 
 LOG_DIR="/usr/data/release/logs"
@@ -160,7 +158,7 @@ parse_release_metainfo()
 		esac
 	done
 
-	info "received metainfo: "
+	info "build(${_branch}) received metainfo: "
 	info "	`get_branch_specific ${_branch} CHROOT`"
 	info "	`get_branch_specific ${_branch} HBSD_BRANCH`"
 	info "	`get_branch_specific ${_branch} HBSD_NAME_TAG`"
@@ -280,8 +278,17 @@ publish_release()
 		then
 			find ${_www_iso_dir} -name "CHECKSUM.*" -type f -exec ${SIGN_COMMAND} {} \;
 			find ${_www_dist_dir} -name "MANIFEST" -type f -exec ${SIGN_COMMAND} {} \;
-
 		fi
+
+		# log out the newly generated ISOs checksums
+		for i in `find ${_www_iso_dir} -name "CHECKSUM.*" -type f`
+		do
+			info "build(${_branch}) `basename ${i}`:"
+			cat $i | while read line
+			do
+				info "  ${line}"
+			done
+		done
 
 		cat ${LOG_FILE_SHORT} | mail -c op@hardenedbsd.org -s "[DONE] HardenedBSD-stable ${_branch} ${_hbsd_date_tag} ${_hbsd_name_tag} RELEASE builds @${DATE}" robot@hardenedbsd.org
 	else
@@ -313,15 +320,18 @@ main()
 	cd ${HARDENEDBSD_STABLE_DIR}
 
 	old_revision_10=`get_revision origin/${BRANCH_10}`
+	old_revision_11=`get_revision origin/${BRANCH_11}`
 	old_revision_current=`get_revision origin/${BRANCH_current}`
 
 	git fetch origin
 
 	new_revision_10=`get_revision origin/${BRANCH_10}`
+	new_revision_11=`get_revision origin/${BRANCH_11}`
 	new_revision_current=`get_revision origin/${BRANCH_current}`
 
 	info "10-STABLE revisions: old ${old_revision_10} new ${new_revision_10}"
-	info "11-CURRENT revisions: old ${old_revision_current} new ${new_revision_current}"
+	info "11-STABLE revisions: old ${old_revision_11} new ${new_revision_11}"
+	info "12-CURRENT revisions: old ${old_revision_current} new ${new_revision_current}"
 
 	if [ "${old_revision_10}" != "${new_revision_10}" ] || [ "X${forced_build}" = "Xyes" ] || [ "X${forced_build}" = "X10-stable" ]
 	then
@@ -335,6 +345,20 @@ main()
 		fi
 		fixups ${BRANCH_10}
 		publish_release ${BRANCH_10} ${_build_status}
+	fi
+
+	if [ "${old_revision_11}" != "${new_revision_11}" ] || [ "X${forced_build}" = "Xyes" ] || [ "X${forced_build}" = "X11-stable" ]
+	then
+		_do_build=$(($_do_build+1))
+		prepare_branch ${BRANCH_11}
+		build_release ${BRANCH_11}
+		_build_status=$?
+		if [ ${_build_status} != 0 ]
+		then
+			_failed_builds=$(($_failed_builds+1))
+		fi
+		fixups ${BRANCH_11}
+		publish_release ${BRANCH_11} ${_build_status}
 	fi
 
 	if [ "${old_revision_current}" != "${new_revision_current}" ] || [ "X${forced_build}" = "Xyes" ] || [ "X${forced_build}" = "Xcurrent" ]
@@ -417,17 +441,20 @@ else
 				10-stable)
 					forced_build="10-stable"
 					;;
+				11-stable)
+					forced_build="11-stable"
+					;;
 				current)
 					forced_build="current"
 					;;
 				*)
-					warn "valid targets: 10-stable, current"
+					warn "valid targets: 10-stable, 11-stable, current"
 					err "unknown forced build target: ${_branch}"
 				esac
 				info "forced build: ${forced_build}"
 			;;
 		*)
-				warn "usage: ${0} [forced_build|forced_build:10-stable|forced_build:current]"
+				warn "usage: ${0} [forced_build|forced_build:10-stable|forced_build:11-stable|forced_build:current]"
 				err "unknown parameter: ${3}"
 			;;
 		esac
