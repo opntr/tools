@@ -1,5 +1,8 @@
 #!/bin/csh
 
+# set reply-to to robot in mail command
+setenv REPLYTO "robot@hardenedbsd.org"
+
 set OPWD=`pwd`
 set SOURCE_DIR="/usr/data/source/git/opBSD"
 set BRANCHES=`cat $SOURCE_DIR/hardenedBSD_branches.txt`
@@ -31,6 +34,9 @@ git stash
 
 (git fetch origin) |& ${TEE_CMD} ${LOGS}/freebsd-fetch-${DATE}.log
 (git fetch freebsd) |& ${TEE_CMD} ${LOGS}/freebsd-fetch-${DATE}.log
+# pushing the freshly fetched FreeBSD commit notes to hardenedbsd repo
+# these contains the svn revision ids
+(git push origin refs/notes/commits) |& ${TEE_CMD} ${LOGS}/freebsd-fetch-${DATE}.log
 
 foreach branch ( ${BRANCHES} )
 	set err=0
