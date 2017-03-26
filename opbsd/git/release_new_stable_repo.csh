@@ -7,7 +7,7 @@ set _stag = ""
 set remotes = "origin prodevops"
 
 if ($#argv < 1 ) then
-	echo "$0 (10-stable|current) (-s)"
+	echo "$0 (10-stable|11-stable|current) (-s)"
 	echo "	-s	update snapshot version"
 	exit 1
 endif
@@ -49,11 +49,17 @@ case "10-stable":
 		set _stag_template = "opbsd-10-stable-"
 		set _vtag_template = "opBSD-10-STABLE-v"
 	breaksw
+case "11-stable":
+		set _lbranch = "opbsd/11-stable/master"
+		set _rbranch = "hardenedbsd/hardened/11-stable/master"
+		set _stag_template = "opbsd-11-stable-"
+		set _vtag_template = "opBSD-11-STABLE-v"
+	breaksw
 case "current":
 		set _lbranch = "opbsd/current/master"
 		set _rbranch = "hardenedbsd/hardened/current/master"
 		set _stag_template = "opbsd-master-"
-		set _vtag_template = "opBSD-11-CURRENT-v"
+		set _vtag_template = "opBSD-12-CURRENT-v"
 	breaksw
 default:
 	echo "not supported branch"
@@ -94,6 +100,7 @@ default:
 		endif
 		set _Mtag = ${_vtag_template}${_source_version}
 		set _mode = "major"
+		set _tag = ${Mtag}
 		breaksw
 	endif
 
@@ -105,6 +112,7 @@ default:
 		@ _new_minor = ${_last_minor} + 1
 		set _mtag = "${_last_Mtag}.${_new_minor}"
 	endif
+	set _tag = ${_mtag}
 	breaksw
 endsw
 
@@ -114,6 +122,7 @@ if ( ${_stag} == ${_last_stag} ) then
 	@ _new_snapshot = ${_last_snapshot} + 1
 	set _stag = "${_stag_template}${_date}-${_new_snapshot}"
 endif
+
 
 echo "remote branch:	${_rbranch}"
 echo "local branch:	${_lbranch}"
@@ -146,14 +155,9 @@ if ( ${_ok} != "yes" ) then
 	exit 1
 endif
 
-if ( "X${_Mtag}" != "X" ) then
-	git tag ${_Mtag}
-	git shortlog ${_last_mtag}..${_Mtag} > /tmp/shortlog-${_Mtag}.txt
-endif
-
-if ( "X${_mtag}" != "X" ) then
-	git tag ${_mtag}
-	git shortlog ${_last_mtag}..${_mtag} > /tmp/shortlog-${_mtag}.txt
+if ( "X${_tag}" != "X" ) then
+	git tag ${_tag}
+	git shortlog ${_last_mtag}..${_tag} > /tmp/shortlog-${_tag}.txt
 endif
 
 if ( "X${_stag}" != "X" ) then
@@ -172,5 +176,56 @@ foreach i ( ${remotes} )
 	git push --tags ${i}
 end
 
+echo "--"
+echo 'enter "yes" to generate html changelog for drupal page'
+set _ok = $<
+if ( ${_ok} != "yes" ) then
+	exit 1
+endif
+
+echo "post processing changelog"
+echo "${_tag} - https://github.com/opntr/opBSD/releases/tag/${_tag}"> /tmp/drupal-${_tag}.txt
+echo "<br>" >> /tmp/drupal-${_tag}.txt
+echo "<strong>Highlights:</strong>" >> /tmp/drupal-${_tag}.txt
+echo "<ul>" >> /tmp/drupal-${_tag}.txt
+echo "	<li>...</li>" >> /tmp/drupal-${_tag}.txt
+echo "</ul>" >> /tmp/drupal-${_tag}.txt
+echo "<strong>Installer images:</strong>" >> /tmp/drupal-${_tag}.txt
+echo "http://installer.opbsd.org/pub/opBSD/releases/amd64/amd64/ISO-IMAGES/${_tag}/" >> /tmp/drupal-${_tag}.txt
+echo "<br>" >> /tmp/drupal-${_tag}.txt
+echo "<strong>CHECKSUM.SHA512:</strong>" >> /tmp/drupal-${_tag}.txt
+echo "<code>" >> /tmp/drupal-${_tag}.txt
+echo "..." >> /tmp/drupal-${_tag}.txt
+echo "</code>" >> /tmp/drupal-${_tag}.txt
+echo "<br>" >> /tmp/drupal-${_tag}.txt
+echo "<strong>CHECKSUM.SHA512.asc:</strong>" >> /tmp/drupal-${_tag}.txt
+echo "<code>" >> /tmp/drupal-${_tag}.txt
+echo "..." >> /tmp/drupal-${_tag}.txt
+echo "</code>" >> /tmp/drupal-${_tag}.txt
+echo "<br>" >> /tmp/drupal-${_tag}.txt
+echo "<code>" >> /tmp/drupal-${_tag}.txt
+awk 'BEGIN{print "<strong>Changelog:</strong>"; c=0; prev_c=0}; /^[A-Za-z]/{if (c != prev_c) {print "</ul>"; print "<br>"; prev_c = c}; print "<strong>"; print; print "</strong>"; print "<ul>"; c++}; /^[ ]/{print "\t<li>"; print; print "\t</li>"}; END{print "</ul>"}' /tmp/shortlog-${_tag}.txt >> /tmp/drupal-${_tag}.txt
+echo "</code>" >> /tmp/drupal-${_tag}.txt
+
+echo "Highlights:" > /tmp/github-${_tag}.txt
+echo " * ..." >> /tmp/github-${_tag}.txt
+echo >> /tmp/github-${_tag}.txt
+echo "Changelog" >> /tmp/github-${_tag}.txt
+echo "~~~" >> /tmp/github-${_tag}.txt
+cat /tmp/shortlog-${_tag}.txt >> /tmp/github-${_tag}.txt
+echo "~~~" >> /tmp/github-${_tag}.txt
+echo >> /tmp/github-${_tag}.txt
+echo "Installer images: http://installer.opbsd.org/pub/opBSD/releases/amd64/amd64/ISO-IMAGES/${_tag}/" >> /tmp/github-${_tag}.txt
+echo >> /tmp/github-${_tag}.txt
+echo "CHECKSUM.SHA512:" >> /tmp/github-${_tag}.txt
+echo "~~~" >> /tmp/github-${_tag}.txt
+echo "..." >> /tmp/github-${_tag}.txt
+echo "~~~" >> /tmp/github-${_tag}.txt
+echo >> /tmp/github-${_tag}.txt
+echo "CHECKSUM.SHA512.asc:" >> /tmp/github-${_tag}.txt
+echo "~~~" >> /tmp/github-${_tag}.txt
+echo "..." >> /tmp/github-${_tag}.txt
+echo "~~~" >> /tmp/github-${_tag}.txt
+echo "post processing changelog done"
 echo
 echo "done."
