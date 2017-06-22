@@ -1,0 +1,4 @@
+freebsd/10-stable/master:freebsd/stable/10
+opbsd/10-stable/master:freebsd/10-stable/master
+freebsd/11-stable/master:freebsd/stable/11
+freebsd/current/master:freebsd/master
