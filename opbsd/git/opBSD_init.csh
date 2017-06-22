@@ -11,9 +11,12 @@ endif
 
 cd ${BSD_NAME}.git
 
-git remote add freebsd https://github.com/freebsd/freebsd.git
+git remote add freebsd "https://github.com/freebsd/freebsd.git"
 git config --add remote.freebsd.fetch '+refs/notes/*:refs/notes/*'
 git fetch freebsd
+
+git remote add prodevops "git@prodevops.net:opBSD/opBSD.git"
+git fetch prodevops
 
 # FreeBSD upstream repos
 git branch --track freebsd/10-stable/master freebsd/stable/10
